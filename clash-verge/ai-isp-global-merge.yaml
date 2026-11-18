@@ -15,20 +15,27 @@ listeners:
     udp: true
     proxy: "AI-ISP"
 
-# 可选：跨订阅兜底节点（例如你的备用机场里的洛杉矶节点或香港专线），不需要可删除整段 proxy-providers
+# 可选：跨订阅双层兜底节点（主力订阅高速池 + 备用 HY2 订阅 + 静态 ISP 失效兜底节点）
+# 若只需要单订阅，可直接删除或保持注释整段 proxy-providers
 # proxy-providers:
-#   BACKUP-TRANSIT:
+#   BACKUP-FAST:
 #     type: http
-#     url: "<YOUR_BACKUP_SUBSCRIPTION_URL>"
-#     path: ./proxy_providers/backup.yaml
+#     url: "<YOUR_BACKUP_SUB_URL>"
+#     path: ./proxy_providers/backup_fast.yaml
 #     interval: 86400
-#     filter: '^HK - 香港综合$'
+#     filter: '^(HK - 香港专线|TW - 台湾专线|US - 圣何塞)$'
 #   BACKUP-FALLBACK:
 #     type: http
-#     url: "<YOUR_BACKUP_SUBSCRIPTION_URL>"
-#     path: ./proxy_providers/backup.yaml
+#     url: "<YOUR_BACKUP_SUB_URL>"
+#     path: ./proxy_providers/backup_fast.yaml
 #     interval: 86400
-#     filter: '^US - 洛杉矶 - 13$'
+#     filter: '^US - 洛杉矶$'
+#   BACKUP-HY2:
+#     type: http
+#     url: "<YOUR_SECOND_BACKUP_SUB_URL>"
+#     path: ./proxy_providers/backup_hy2.yaml
+#     interval: 86400
+#     filter: '(?i)HY2|Hysteria'
 
 prepend-proxies:
   - name: "🇺🇸 独享静态ISP"
@@ -52,18 +59,37 @@ prepend-proxy-groups:
     # use:
     #   - BACKUP-FALLBACK
 
-  # 自动抓取你当前任意机场订阅中高速节点当加密前置跳板（排除低速家宽与低倍率节点防瓶颈）
+  # 两级冗余跳板：优先使用主跳板池；若启用多订阅，可在主力池全挂时自动降级到备用 HY2 池
   - name: "ISP-自动跳板"
+    type: fallback
+    url: https://www.gstatic.com/generate_204
+    interval: 60
+    lazy: false
+    proxies:
+      - "ISP-主力高速池"
+      # - "ISP-HY备用池"
+
+  # 第一层主力跳板池：自动抓取高速稳定节点（排除静态 ISP 本身与低速家宽/低倍率节点防瓶颈）
+  - name: "ISP-主力高速池"
     type: url-test
     include-all: true
     # use:
-    #   - BACKUP-TRANSIT
-    # 若想限定只用港日美非家宽高速节点，可取消下面这行注释：
-    # filter: "(?i)HK|香港|JP|日本|SG|新加坡|US|USA|美国"
+    #   - BACKUP-FAST
+    # 若想限定只用指定高速节点（注意 filter 会同时作用于 include-all 与 use），可取消下面注释：
+    # filter: '(?i)(HK|香港|JP|日本|SG|新加坡|US|圣何塞|硅谷|TW|台湾)'
     exclude-filter: '(?i)独享静态ISP|家宽|0\.3X|DIRECT|REJECT|剩余|到期|官网|套餐|重置|群组'
     url: https://www.gstatic.com/generate_204
     interval: 180
     tolerance: 50
+
+  # 可选第二层备用跳板池（配合上面的 BACKUP-HY2 provider 取消注释使用）
+  # - name: "ISP-HY备用池"
+  #   type: url-test
+  #   use:
+  #     - BACKUP-HY2
+  #   url: https://www.gstatic.com/generate_204
+  #   interval: 300
+  #   tolerance: 50
 
 # 防 DNS 泄漏：国内域名走国内 DNS，其余海外与 AI 域名全部穿过 AI-ISP 在远端加密解析
 dns:
