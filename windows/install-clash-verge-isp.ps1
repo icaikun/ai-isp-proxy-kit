@@ -45,6 +45,24 @@ if (-not $IspPass) {
 }
 
 $Updated | Set-Content -Path $MergePath -Encoding UTF8
+
+# Create Desktop shortcut for launching the clean browser directly
+$Desktop = [Environment]::GetFolderPath('Desktop')
+$LnkPath = Join-Path $Desktop "启动AI纯净浏览器.lnk"
+$CmdPath = Join-Path $PSScriptRoot "启动纯净AI浏览器.cmd"
+$ws = New-Object -ComObject WScript.Shell
+$sc = $ws.CreateShortcut($LnkPath)
+$sc.TargetPath = $CmdPath
+$sc.WorkingDirectory = $PSScriptRoot
+foreach ($iconExe in @(
+    "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+    "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+)) {
+    if (Test-Path $iconExe) { $sc.IconLocation = "$iconExe,0"; break }
+}
+$sc.Save()
+
 Write-Host "[OK] 已写入 Clash Verge 全局扩展覆写配置: $MergePath" -ForegroundColor Green
+Write-Host "[OK] 已在桌面生成快捷方式: $LnkPath" -ForegroundColor Green
 Write-Host "请在 Clash Verge Rev 的「订阅」页面刷新一次当前激活订阅，然后在「代理」页将 AI-ISP 选为「🇺🇸 独享静态ISP」。" -ForegroundColor Cyan
-Write-Host "之后双击 windows\启动纯净AI浏览器.cmd 即可使用干净无泄漏浏览器窗口。" -ForegroundColor Cyan
+Write-Host "之后直接双击桌面的「启动AI纯净浏览器」即可使用干净无泄漏浏览器窗口。" -ForegroundColor Cyan
