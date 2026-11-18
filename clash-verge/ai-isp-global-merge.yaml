@@ -1,0 +1,204 @@
+# ==============================================================================
+# Clash Verge Rev / Mihomo Party 全局扩展覆写配置 (脱敏模板)
+# 用法：订阅 (Profiles) -> 全局扩展覆写配置 (Merge) -> 右键编辑粘贴，替换 <YOUR_ISP_*> 占位符
+# ==============================================================================
+
+profile:
+  store-selected: true
+
+# 专属全局纯净端口 17899（供纯净 Chrome 专窗直连静态 ISP，杜绝分流多出口不一致）
+listeners:
+  - name: pure-static-isp
+    type: mixed
+    port: 17899
+    listen: 127.0.0.1
+    udp: true
+    proxy: "🇺🇸 独享静态ISP"
+
+prepend-proxies:
+  - name: "🇺🇸 独享静态ISP"
+    type: socks5                  # 若商家提供 HTTP 代理则改为 http
+    server: "<YOUR_ISP_IP>"
+    port: 1080                    # 改为你的 ISP 端口
+    username: "<YOUR_ISP_USER>"
+    password: "<YOUR_ISP_PASS>"
+    udp: true
+    dialer-proxy: "ISP-自动跳板"
+
+prepend-proxy-groups:
+  # 面板顶部分组：默认走独享静态 ISP；尚未填入 ISP 前可临时切到「ISP-自动跳板」
+  - name: "AI-ISP"
+    type: select
+    proxies:
+      - "🇺🇸 独享静态ISP"
+      - "ISP-自动跳板"
+
+  # 自动抓取你当前任意机场订阅中延迟最低的节点当加密前置跳板（港/日/新/美均可，排除自身防死循环）
+  - name: "ISP-自动跳板"
+    type: url-test
+    include-all: true
+    # 若想限定只用港日美节点当跳板，可取消下面这行注释：
+    # filter: "(?i)HK|香港|JP|日本|SG|新加坡|US|USA|美国"
+    exclude-filter: "(?i)独享静态ISP|DIRECT|REJECT|剩余|到期|官网|套餐|重置|群组"
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+
+# 防 DNS 泄漏：国内域名走国内 DNS，其余海外与 AI 域名全部穿过 AI-ISP 在远端加密解析
+dns:
+  ipv6: false
+  respect-rules: true
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver-policy:
+    "geosite:cn,private":
+      - 223.5.5.5
+      - 119.29.29.29
+  nameserver:
+    - https://1.1.1.1/dns-query#AI-ISP
+    - https://8.8.8.8/dns-query#AI-ISP
+
+prepend-rules:
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR6,::1/128,DIRECT,no-resolve
+
+  # ==================== 1. Anthropic / Claude 全家桶 ====================
+  - DOMAIN-SUFFIX,anthropic.com,AI-ISP
+  - DOMAIN-SUFFIX,claude.ai,AI-ISP
+  - DOMAIN-SUFFIX,claude.com,AI-ISP
+  - DOMAIN-SUFFIX,claude.app,AI-ISP
+  - DOMAIN-SUFFIX,clau.de,AI-ISP
+  - DOMAIN-SUFFIX,claudeusercontent.com,AI-ISP
+  - DOMAIN-SUFFIX,claudemcpcontent.com,AI-ISP
+  - DOMAIN-SUFFIX,modelcontextprotocol.io,AI-ISP
+
+  # ==================== 2. OpenAI / ChatGPT / Codex / Sora ====================
+  - DOMAIN-SUFFIX,openai.com,AI-ISP
+  - DOMAIN-SUFFIX,chatgpt.com,AI-ISP
+  - DOMAIN-SUFFIX,chatgpt.site,AI-ISP
+  - DOMAIN-SUFFIX,chatgpt-team.site,AI-ISP
+  - DOMAIN-SUFFIX,oaistatic.com,AI-ISP
+  - DOMAIN-SUFFIX,oaiusercontent.com,AI-ISP
+  - DOMAIN-SUFFIX,oaistatsig.com,AI-ISP
+  - DOMAIN-SUFFIX,sora.com,AI-ISP
+  - DOMAIN-SUFFIX,ai.com,AI-ISP
+  - DOMAIN,chat.openai.com.cdn.cloudflare.net,AI-ISP
+  - DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net,AI-ISP
+  - DOMAIN,openaiapi-site.azureedge.net,AI-ISP
+  - DOMAIN,openaicomproductionae4b.blob.core.windows.net,AI-ISP
+  - DOMAIN,production-openaicom-storage.azureedge.net,AI-ISP
+  - DOMAIN,openaicom.imgix.net,AI-ISP
+  - DOMAIN-SUFFIX,chatgpt.livekit.cloud,AI-ISP
+  - DOMAIN-SUFFIX,host.livekit.cloud,AI-ISP
+  - DOMAIN-SUFFIX,turn.livekit.cloud,AI-ISP
+  - DOMAIN-KEYWORD,openai,AI-ISP
+
+  # ==================== 3. Google Gemini / AI Studio / OAuth ====================
+  - DOMAIN-SUFFIX,gemini.google.com,AI-ISP
+  - DOMAIN-SUFFIX,gemini.google,AI-ISP
+  - DOMAIN-SUFFIX,bard.google.com,AI-ISP
+  - DOMAIN-SUFFIX,aistudio.google.com,AI-ISP
+  - DOMAIN-SUFFIX,ai.google.dev,AI-ISP
+  - DOMAIN-SUFFIX,generativeai.google,AI-ISP
+  - DOMAIN-SUFFIX,makersuite.google.com,AI-ISP
+  - DOMAIN-SUFFIX,generativelanguage.googleapis.com,AI-ISP
+  - DOMAIN,aiplatform.googleapis.com,AI-ISP
+  - DOMAIN-SUFFIX,alkalimakersuite-pa.clients6.google.com,AI-ISP
+  - DOMAIN-SUFFIX,alkalicore-pa.clients6.google.com,AI-ISP
+  - DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com,AI-ISP
+  - DOMAIN-SUFFIX,aisandbox-pa.googleapis.com,AI-ISP
+  - DOMAIN-SUFFIX,aisandbox-pa.clients6.google.com,AI-ISP
+  - DOMAIN-SUFFIX,robinfrontend-pa.clients6.google.com,AI-ISP
+  - DOMAIN-SUFFIX,waa-pa.clients6.google.com,AI-ISP
+  - DOMAIN-SUFFIX,cloudaicompanion.googleapis.com,AI-ISP
+  - DOMAIN,cloudcode-pa.googleapis.com,AI-ISP
+  - DOMAIN,daily-cloudcode-pa.googleapis.com,AI-ISP
+  - DOMAIN,daily-cloudcode-pa.sandbox.googleapis.com,AI-ISP
+  - DOMAIN,aida.googleapis.com,AI-ISP
+  - DOMAIN-SUFFIX,notebooklm.google.com,AI-ISP
+  - DOMAIN-SUFFIX,notebooklm.google,AI-ISP
+  - DOMAIN-SUFFIX,jules.google.com,AI-ISP
+  - DOMAIN-SUFFIX,labs.google,AI-ISP
+  - DOMAIN-SUFFIX,deepmind.com,AI-ISP
+  - DOMAIN-SUFFIX,deepmind.google,AI-ISP
+  - DOMAIN-SUFFIX,antigravity.google,AI-ISP
+  - DOMAIN-SUFFIX,antigravity.google.com,AI-ISP
+  - DOMAIN-SUFFIX,antigravity-unleash.goog,AI-ISP
+  - DOMAIN,accounts.google.com,AI-ISP
+  - DOMAIN,accounts.google.cn,AI-ISP
+  - DOMAIN,oauth2.googleapis.com,AI-ISP
+  - DOMAIN,www.googleapis.com,AI-ISP
+
+  # ==================== 4. xAI / Grok ====================
+  - DOMAIN-SUFFIX,grok.com,AI-ISP
+  - DOMAIN-SUFFIX,x.ai,AI-ISP
+  - DOMAIN-SUFFIX,grok.x.com,AI-ISP
+  - DOMAIN-SUFFIX,grokusercontent.com,AI-ISP
+  - DOMAIN,accounts.x.ai,AI-ISP
+  - DOMAIN,accounts.spacex.ai,AI-ISP
+
+  # ==================== 5. Meta AI / Muse / Llama ====================
+  - DOMAIN-SUFFIX,meta.ai,AI-ISP
+  - DOMAIN-SUFFIX,muse.ai,AI-ISP
+  - DOMAIN-SUFFIX,muse.meta.com,AI-ISP
+  - DOMAIN-SUFFIX,llama.com,AI-ISP
+  - DOMAIN-SUFFIX,auth.meta.com,AI-ISP
+  - DOMAIN-SUFFIX,metaaiusercontent.com,AI-ISP
+  - DOMAIN-SUFFIX,ecto1usercontent.com,AI-ISP
+  - DOMAIN-SUFFIX,meta-agents-apps.workers.dev,AI-ISP
+
+  # ==================== 6. 其他海外 AI 与编程工具 ====================
+  - DOMAIN-SUFFIX,perplexity.ai,AI-ISP
+  - DOMAIN-SUFFIX,pplx.ai,AI-ISP
+  - DOMAIN-SUFFIX,openrouter.ai,AI-ISP
+  - DOMAIN-SUFFIX,cursor.com,AI-ISP
+  - DOMAIN-SUFFIX,cursor.sh,AI-ISP
+  - DOMAIN-SUFFIX,cursorapi.com,AI-ISP
+  - DOMAIN-SUFFIX,codeium.com,AI-ISP
+  - DOMAIN-SUFFIX,windsurf.com,AI-ISP
+  - DOMAIN-SUFFIX,mistral.ai,AI-ISP
+  - DOMAIN-SUFFIX,poe.com,AI-ISP
+  - DOMAIN-SUFFIX,cohere.com,AI-ISP
+  - DOMAIN-SUFFIX,elevenlabs.io,AI-ISP
+
+  # ==================== 7. 伴随风控：过盾 / SSO 登录 / 支付绑卡 / KYC / 遥测 ====================
+  - DOMAIN,challenges.cloudflare.com,AI-ISP
+  - DOMAIN-SUFFIX,challenges.cloudflare.com,AI-ISP
+  - DOMAIN,openai-api.arkoselabs.com,AI-ISP
+  - DOMAIN-SUFFIX,arkoselabs.com,AI-ISP
+  - DOMAIN-SUFFIX,funcaptcha.com,AI-ISP
+  - DOMAIN-SUFFIX,hcaptcha.com,AI-ISP
+  - DOMAIN-SUFFIX,recaptcha.net,AI-ISP
+  - DOMAIN-SUFFIX,identrust.com,AI-ISP
+  - DOMAIN-SUFFIX,auth0.com,AI-ISP
+  - DOMAIN-SUFFIX,workos.com,AI-ISP
+  - DOMAIN-SUFFIX,clerk.com,AI-ISP
+  - DOMAIN-SUFFIX,stytch.com,AI-ISP
+  - DOMAIN-SUFFIX,stripe.com,AI-ISP
+  - DOMAIN-SUFFIX,stripe.network,AI-ISP
+  - DOMAIN-SUFFIX,stripecdn.com,AI-ISP
+  - DOMAIN-SUFFIX,withpersona.com,AI-ISP
+  - DOMAIN-SUFFIX,statsig.com,AI-ISP
+  - DOMAIN-SUFFIX,statsigapi.net,AI-ISP
+  - DOMAIN-SUFFIX,featuregates.org,AI-ISP
+  - DOMAIN-SUFFIX,intercom.io,AI-ISP
+  - DOMAIN-SUFFIX,intercomcdn.com,AI-ISP
+  - DOMAIN-SUFFIX,launchdarkly.com,AI-ISP
+
+  # ==================== 8. IP 与防泄漏自检站 ====================
+  - DOMAIN-SUFFIX,ping0.cc,AI-ISP
+  - DOMAIN-SUFFIX,ipinfo.io,AI-ISP
+  - DOMAIN-SUFFIX,ipleak.net,AI-ISP
+  - DOMAIN-SUFFIX,browserleaks.com,AI-ISP
+  - DOMAIN-SUFFIX,scamalytics.com,AI-ISP
+  - DOMAIN-SUFFIX,whoer.net,AI-ISP
+  - DOMAIN-SUFFIX,creepjs.com,AI-ISP
+  - DOMAIN-SUFFIX,ifconfig.me,AI-ISP
+  - DOMAIN-SUFFIX,ip.sb,AI-ISP
+  - DOMAIN-SUFFIX,ipsb.com,AI-ISP
+  - DOMAIN-SUFFIX,ipapi.co,AI-ISP
+  - DOMAIN-SUFFIX,ip-api.com,AI-ISP

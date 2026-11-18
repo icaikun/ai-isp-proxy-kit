@@ -1,0 +1,7 @@
+chrome-ca-profile/
+chrome-profile/
+*.bak
+*.backup
+.env
+.DS_Store
+Thumbs.db

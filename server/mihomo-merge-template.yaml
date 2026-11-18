@@ -1,0 +1,89 @@
+# ==============================================================================
+# 服务端 Mihomo / metacubexd Merge 覆写模板 (脱敏)
+# 适用：国内 VPS 部署 Docker 版 Mihomo + sub2api，通过加密前置节点链式拉取独享静态 ISP
+# ==============================================================================
+
+allow-lan: true
+bind-address: "*"
+ipv6: false
+
+# 独立全局纯净端口（供本地通过 SSH LocalForward 17898 -> VPS_PRIVATE_IP:17899 复用同出口）
+listeners:
+  - name: pure-ca-isp
+    type: mixed
+    port: 17899
+    listen: 0.0.0.0
+    udp: true
+    proxy: "🇺🇸 独享静态ISP"
+
+dns:
+  ipv6: false
+  respect-rules: true
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver-policy:
+    "geosite:cn,private":
+      - 223.5.5.5
+      - 119.29.29.29
+  nameserver:
+    - https://1.1.1.1/dns-query#AI-sub
+    - https://8.8.8.8/dns-query#AI-sub
+
+append-proxies:
+  - name: "🇺🇸 独享静态ISP"
+    type: socks5
+    server: "<YOUR_ISP_IP>"
+    port: 1080
+    username: "<YOUR_ISP_USER>"
+    password: "<YOUR_ISP_PASS>"
+    udp: true
+    dialer-proxy: "ISP-前置跳板"
+
+append-proxy-groups:
+  - name: "ISP-前置跳板"
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 180
+    tolerance: 50
+    proxies:
+      - "<YOUR_TRANSIT_NODE_1>"
+      - "<YOUR_TRANSIT_NODE_2>"
+
+  - name: "AI-sub"
+    type: select
+    proxies:
+      - "🇺🇸 独享静态ISP"
+
+prepend-rules:
+  - DOMAIN-SUFFIX,anthropic.com,AI-sub
+  - DOMAIN-SUFFIX,claude.ai,AI-sub
+  - DOMAIN-SUFFIX,claude.com,AI-sub
+  - DOMAIN-SUFFIX,claude.app,AI-sub
+  - DOMAIN-SUFFIX,clau.de,AI-sub
+  - DOMAIN-SUFFIX,claudeusercontent.com,AI-sub
+  - DOMAIN-SUFFIX,claudemcpcontent.com,AI-sub
+  - DOMAIN-SUFFIX,modelcontextprotocol.io,AI-sub
+  - DOMAIN-SUFFIX,openai.com,AI-sub
+  - DOMAIN-SUFFIX,chatgpt.com,AI-sub
+  - DOMAIN-SUFFIX,oaistatic.com,AI-sub
+  - DOMAIN-SUFFIX,oaiusercontent.com,AI-sub
+  - DOMAIN-SUFFIX,sora.com,AI-sub
+  - DOMAIN-SUFFIX,gemini.google.com,AI-sub
+  - DOMAIN-SUFFIX,aistudio.google.com,AI-sub
+  - DOMAIN-SUFFIX,generativelanguage.googleapis.com,AI-sub
+  - DOMAIN-SUFFIX,grok.com,AI-sub
+  - DOMAIN-SUFFIX,x.ai,AI-sub
+  - DOMAIN,challenges.cloudflare.com,AI-sub
+  - DOMAIN-SUFFIX,arkoselabs.com,AI-sub
+  - DOMAIN-SUFFIX,auth0.com,AI-sub
+  - DOMAIN-SUFFIX,workos.com,AI-sub
+  - DOMAIN-SUFFIX,stripe.com,AI-sub
+  - DOMAIN-SUFFIX,stripe.network,AI-sub
+  - DOMAIN-SUFFIX,statsig.com,AI-sub
+  - DOMAIN-SUFFIX,statsigapi.net,AI-sub
+  - DOMAIN-SUFFIX,ping0.cc,AI-sub
+  - DOMAIN-SUFFIX,ipinfo.io,AI-sub
