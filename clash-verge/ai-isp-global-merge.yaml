@@ -6,14 +6,29 @@
 profile:
   store-selected: true
 
-# 专属全局纯净端口 17899（供纯净 Chrome 专窗直连静态 ISP，杜绝分流多出口不一致）
+# 专属全局纯净端口 17899（供纯净 Chrome/Edge 专窗直连静态 ISP，杜绝分流多出口不一致）
 listeners:
   - name: pure-static-isp
     type: mixed
     port: 17899
     listen: 127.0.0.1
     udp: true
-    proxy: "🇺🇸 独享静态ISP"
+    proxy: "AI-ISP"
+
+# 可选：跨订阅兜底节点（例如你的备用机场里的洛杉矶节点或香港专线），不需要可删除整段 proxy-providers
+# proxy-providers:
+#   BACKUP-TRANSIT:
+#     type: http
+#     url: "<YOUR_BACKUP_SUBSCRIPTION_URL>"
+#     path: ./proxy_providers/backup.yaml
+#     interval: 86400
+#     filter: '^HK - 香港综合$'
+#   BACKUP-FALLBACK:
+#     type: http
+#     url: "<YOUR_BACKUP_SUBSCRIPTION_URL>"
+#     path: ./proxy_providers/backup.yaml
+#     interval: 86400
+#     filter: '^US - 洛杉矶 - 13$'
 
 prepend-proxies:
   - name: "🇺🇸 独享静态ISP"
@@ -26,22 +41,28 @@ prepend-proxies:
     dialer-proxy: "ISP-自动跳板"
 
 prepend-proxy-groups:
-  # 面板顶部分组：默认走独享静态 ISP；尚未填入 ISP 前可临时切到「ISP-自动跳板」
+  # 严格优先走独享静态 ISP；若启用了上面的 BACKUP-FALLBACK，在静态 ISP 不可用时自动故障转移过去，恢复后自动切回
   - name: "AI-ISP"
-    type: select
+    type: fallback
+    url: https://www.gstatic.com/generate_204
+    interval: 30
+    lazy: false
     proxies:
       - "🇺🇸 独享静态ISP"
-      - "ISP-自动跳板"
+    # use:
+    #   - BACKUP-FALLBACK
 
-  # 自动抓取你当前任意机场订阅中延迟最低的节点当加密前置跳板（港/日/新/美均可，排除自身防死循环）
+  # 自动抓取你当前任意机场订阅中高速节点当加密前置跳板（排除低速家宽与低倍率节点防瓶颈）
   - name: "ISP-自动跳板"
     type: url-test
     include-all: true
-    # 若想限定只用港日美节点当跳板，可取消下面这行注释：
+    # use:
+    #   - BACKUP-TRANSIT
+    # 若想限定只用港日美非家宽高速节点，可取消下面这行注释：
     # filter: "(?i)HK|香港|JP|日本|SG|新加坡|US|USA|美国"
-    exclude-filter: "(?i)独享静态ISP|DIRECT|REJECT|剩余|到期|官网|套餐|重置|群组"
+    exclude-filter: '(?i)独享静态ISP|家宽|0\.3X|DIRECT|REJECT|剩余|到期|官网|套餐|重置|群组'
     url: https://www.gstatic.com/generate_204
-    interval: 300
+    interval: 180
     tolerance: 50
 
 # 防 DNS 泄漏：国内域名走国内 DNS，其余海外与 AI 域名全部穿过 AI-ISP 在远端加密解析
