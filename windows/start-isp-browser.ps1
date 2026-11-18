@@ -7,14 +7,16 @@
 $ErrorActionPreference = "Stop"
 $ProfileDir = Join-Path $PSScriptRoot "chrome-ca-profile"
 
-$ChromeCandidates = @(
+$BrowserCandidates = @(
     "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
     "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
-    "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+    "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe",
+    "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+    "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
 )
-$ChromeExe = $ChromeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $ChromeExe) {
-    throw "未找到 Google Chrome，请先安装官方正版 Google Chrome。"
+$BrowserExe = $BrowserCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $BrowserExe) {
+    throw "未找到 Google Chrome 或 Microsoft Edge，请先安装官方正版浏览器。"
 }
 
 $client = New-Object System.Net.Sockets.TcpClient
@@ -71,8 +73,8 @@ try {
         $StartUrl
     )
 
-    Write-Host "[2/2] 纯净 Chrome 已启动！请保持本窗口开启；关闭 Chrome 后将自动恢复原时区 ($OriginalTz)..." -ForegroundColor Green
-    $proc = Start-Process -FilePath $ChromeExe -ArgumentList $ChromeArgs -PassThru
+    Write-Host "[2/2] 纯净浏览器已启动 ($BrowserExe)！请保持本窗口开启；关闭窗口后将自动恢复原时区 ($OriginalTz)..." -ForegroundColor Green
+    $proc = Start-Process -FilePath $BrowserExe -ArgumentList $ChromeArgs -PassThru
     $proc.WaitForExit()
 } finally {
     if ($SwitchedTz -and $OriginalTz) {
